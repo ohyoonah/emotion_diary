@@ -1,63 +1,87 @@
 import { PrismaClient, Prisma } from "@prisma/client";
-
+import accountService from "./accountService";
 import generator from "generate-password";
 
 import AppError from "../lib/AppError";
 
 import mailSender from "../lib/mail";
 
-// Todo: change error type
-
-const isCertifiedEmail = (email: string) => {
-    const reg = /^[\w-\.]+@([\w-]+\.)+com$/;
-
-    if (!reg.test(email)) {
-        return true;
-    }
-
-    return false;
-};
-
 class CertificationService {
     private prisma = new PrismaClient();
 
-    async generateCode(codeType: "email" | "password" | "id", email: string) {
-        const result = await this.prisma.account.findUnique({
-            where: {
-                email: email,
-            },
-        });
+    async generateCode(email: string) {
+        try {
+            const result = await this.prisma.account.findUnique({
+                where: {
+                    email: email,
+                },
+                select: {
+                    userID: true,
+                },
+            });
 
-        if (result === null && (codeType === "password" || codeType === "id")) {
-            throw new AppError("UserNotExistError");
-        }
-
-        if (result !== null && codeType === "email") {
-            throw new AppError("UserExistError");
-        } else {
-            try {
-                let length = 8;
-
-                if (codeType === "password") length = 12;
-                const code = generator.generate({ length: 8, numbers: true });
-
-                await this.prisma.certification.create({
-                    data: {
-                        email: email,
-                        code: code,
-                    },
-                });
-                mailSender(email, code, "", "isSubject?");
-            } catch (e: any) {
-                if (e instanceof Prisma.PrismaClientKnownRequestError) {
-                    console.log(e.message);
-                    throw new AppError("ArgumentError");
-                }
+            if (result !== null) {
+                // throw new AppError("UserExistError");
+                return { result: false };
             }
-        }
 
-        await this.prisma.$disconnect();
-        return { result: true };
+            const code = generator.generate({ length: 8, numbers: true });
+
+            await this.prisma.certification.create({
+                data: {
+                    email: email,
+                    code: code,
+                },
+            });
+
+            mailSender(email, code, "", "이메일 인증 코드");
+            await this.prisma.$disconnect();
+            return { result: true };
+        } catch (e: any) {
+            if (e instanceof Prisma.PrismaClientKnownRequestError) {
+                throw new AppError("ArgumentError");
+            }
+            return { result: false };
+        }
+    }
+
+    async generateTempPassword(email: string) {
+        try {
+            const result = await this.prisma.account.findUnique({
+                where: {
+                    email: email,
+                },
+                select: {
+                    userID: true,
+                },
+            });
+
+            if (result === null) {
+                // throw new AppError("UserNotExistError");
+                return { result: false };
+            }
+
+            const code = generator.generate({ length: 12, numbers: true });
+
+            await this.prisma.certification.create({
+                data: {
+                    email: email,
+                    code: code,
+                },
+            });
+
+            await accountService.changePassword(result.userID, code);
+
+            mailSender(email, code, "", "임시 비밀번호");
+
+            await this.prisma.$disconnect();
+            return { result: true };
+        } catch (e: any) {
+            if (e instanceof Prisma.PrismaClientKnownRequestError) {
+                throw new AppError("ArgumentError");
+            }
+            return { result: false };
+        }
     }
 
     async deleteCode(code: string) {

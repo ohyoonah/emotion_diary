@@ -5,7 +5,6 @@ import { generateToken } from "../lib/token";
 import userService from "./userService";
 import tokenService from "./tokenService";
 import certificationService from "./certificationService";
-import { logger } from "../config/logger";
 import { isInvalidEmail } from "../lib/util";
 
 interface UserData {
@@ -59,6 +58,7 @@ class AccountService {
 
         const result = await bcrypt.compare(password, user.password);
 
+        // TODO: error 변경
         if (!result) {
             throw new AppError("UnknownError");
         }
@@ -102,6 +102,7 @@ class AccountService {
                 User: {
                     select: {
                         nickname: true,
+                        id: true,
                     },
                 },
             },
@@ -197,6 +198,31 @@ class AccountService {
             throw new AppError("UnknownError");
         }
     }
+
+    // async getUserChatRoomsByUserModel(usermodel: string) {
+    //     const result1 = await this.prisma.chat.findMany({
+    //         where: {
+    //             OR: [
+    //                 {
+    //                     inviter: String(usermodel),
+    //                 },
+    //                 {
+    //                     invitee: String(usermodel),
+    //                 },
+    //             ],
+    //         },
+    //         select: {
+    //             user_model_id: true,
+    //             //count: 안읽은 메세지 추가 해야함
+    //         },
+    //     });
+    //     if (result1 === null) {
+    //         return null;
+    //     }
+    //     await this.prisma.$disconnect();
+
+    //     return result1[0].user_model_id;
+    // }
 }
 
 export default new AccountService();

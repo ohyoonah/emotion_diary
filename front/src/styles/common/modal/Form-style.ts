@@ -57,8 +57,8 @@ export const Form = styled.form`
     .deleteButton {
         margin-top: 1rem;
 
-        color: ${color.gray};
-        font-size: 0.7rem;
+        color: ${(isdark) => isdark.theme.textColor};
+        font-size: 0.75rem;
     }
 `;
 
@@ -119,7 +119,7 @@ export const RegisterInputSection = styled.section`
     display: flex;
     flex-direction: column;
     justify-content: space-around;
-    align-item: center;
+    align-items: center;
 
     width: 70%;
     height: 60%;
@@ -328,15 +328,10 @@ export const SuccessMessage = styled.div`
     margin-top: 0.5rem;
 `;
 
-
 export const InputError = styled.div`
     font-size: 5px;
     color: ${color.red};
 `;
-
-
-
-
 
 //Find Modal
 export const IDStyle = styled.div`
@@ -357,7 +352,6 @@ export const SmallError = styled.div`
     margin-top: 0.5rem;
 `;
 
-
 export const Success = styled.div`
     color: blue;
     font-size: 0.8rem;
@@ -365,7 +359,14 @@ export const Success = styled.div`
 `;
 
 export const DescriptionLabel = styled.label`
-    display: inline-block;
-    font-size: 0.8rem;
-    margin-bottom: 0.5rem;
+    text-align: start;
 `;
+
+export const SuccessRegister = styled.div`
+
+    color: ${(isdark) => isdark.theme.textColor};
+`
+
+export const RemoveRegister = styled.button`
+    color: ${(isdark) => isdark.theme.textColor};
+`

@@ -1,14 +1,20 @@
 import { useRequestWriteDiary } from "@/api/diary";
 import useForm from "@/hooks/useForm";
+import { SelectStyle } from "@/styles/diary/diary-style";
 import { DiaryDetail, EditBlock } from "@/styles/diary/todayDiary-style";
+import { aMonthAgo, aYearAgo, dayAgo } from "@/util/date";
 import { ChangeEvent, useState } from "react";
 import { useQueryClient } from "react-query";
 
 interface Props {
-    refetch(): void;
+    clickedDate: Date | null;
 }
 
-const getCurrentDateText = (dayToDate: Date) => {
+const getCurrentDateText = (dayToDate: Date | null) => {
+    if (!dayToDate) {
+        return;
+    }
+
     const currentDate = new Date(dayToDate);
 
     const currentYear = currentDate.getFullYear();
@@ -18,10 +24,13 @@ const getCurrentDateText = (dayToDate: Date) => {
     return `${currentYear}년 ${currentMonth}월 ${currentDay}일`;
 };
 
-export default function DiaryCreatePost({ fullDate }: Props) {
+export default function DiaryCreatePost({ clickedDate }: Props) {
     const queryClient = useQueryClient();
 
-    const currentDateText = getCurrentDateText(fullDate);
+    const currentDate = new Date(clickedDate as Date);
+    currentDate.setHours(currentDate.getHours() + 9);
+
+    const currentDateText = getCurrentDateText(clickedDate);
 
     const [privateMode, setPrivateMode] = useState(true);
 
@@ -31,16 +40,13 @@ export default function DiaryCreatePost({ fullDate }: Props) {
     });
 
     const { mutate: writeHandler } = useRequestWriteDiary(
-        { ...form, privateDiary: privateMode, createdAt: fullDate },
+        { ...form, privateDiary: privateMode, createdAt: currentDate as Date },
         {
-            onSuccess: () => {
-                queryClient.invalidateQueries(["calendar-diaries"]);
-
-                console.log("일기 작성 요청 성공");
+            onSuccess: async () => {
+                await queryClient.invalidateQueries(["calendar-diaries"]);
+                await queryClient.invalidateQueries(["past-diaries"]);
             },
-            onError: () => {
-                console.log("일기 작성 요청 실패");
-            },
+            onError: () => {},
         }
     );
 
@@ -58,11 +64,11 @@ export default function DiaryCreatePost({ fullDate }: Props) {
     return (
         <DiaryDetail isEdit={true}>
             <article className="top">
-                {fullDate && <span className="date">{currentDateText}</span>}
-                <select onChange={selectHandler}>
-                    <option value="나만보기">나만보기</option>
-                    <option value="전체공개">전체공개</option>
-                </select>
+                {clickedDate && <span className="date">{currentDateText}</span>}
+                <SelectStyle onChange={selectHandler}>
+                    <option value="나만보기">&#128274; 나만보기</option>
+                    <option value="전체공개">&#128275; 전체공개</option>
+                </SelectStyle>
             </article>
             <EditBlock>
                 <input
